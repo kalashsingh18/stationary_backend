@@ -27,15 +27,7 @@ connectDB();
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3001';
 const allowedOrigins = [CLIENT_URL, 'http://localhost:3000'];
 
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true); // allow tools like curl/postman
-    return allowedOrigins.includes(origin) ? callback(null, true) : callback(new Error('Not allowed by CORS'));
-  },
-  credentials: true, // set true if frontend uses credentials/cookies
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+app.use(cors());
 
 // ensure preflight requests are handled
 app.options('*', cors());
