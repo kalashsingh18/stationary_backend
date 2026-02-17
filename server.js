@@ -19,23 +19,20 @@ import errorHandler from './middleware/errorHandler.js';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
 connectDB();
 
-// ✅ STEP 1: Handle preflight FIRST before anything else
+// ✅ Handle preflight FIRST before anything else
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
   next();
 });
 
-// ✅ STEP 2: Then cors middleware
 app.use(cors({
   origin: '*',
   credentials: false,
@@ -47,23 +44,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.get('/', (req, res) => {
-  res.json({
-    message: 'School Management API',
-    version: '1.0.0',
-    endpoints: {
-      auth: '/api/auth',
-      dashboard: '/api/dashboard',
-      schools: '/api/schools',
-      students: '/api/students',
-      categories: '/api/categories',
-      products: '/api/products',
-      suppliers: '/api/suppliers',
-      purchases: '/api/purchases',
-      invoices: '/api/invoices',
-      commissions: '/api/commissions',
-      reports: '/api/reports'
-    }
-  });
+  res.json({ message: 'School Management API', version: '1.0.0' });
 });
 
 app.use('/api/auth', authRoutes);
@@ -80,9 +61,5 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/admins', adminRoutes);
 
 app.use(errorHandler);
-
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
 
 export default app;
