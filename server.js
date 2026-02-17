@@ -20,52 +20,27 @@ dotenv.config();
 
 const app = express();
 
-
 connectDB();
 
-// allow specific frontend origin (set CLIENT_URL in .env, e.g. http://localhost:3001)
-// allow specific frontend origin (set CLIENT_URL in .env, e.g. http://localhost:3001)
-const CLIENT_URL = 'https://stationary-frontend-one.vercel.app';
-// const allowedOrigins = [CLIENT_URL, 'https://stationary-frontend-one.vercel.app'];
+// ✅ THIS MUST BE FIRST - before any other middleware
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
 
-app.use(cors({
-  origin: (origin, callback) => callback(null, origin || '*'),
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
-
-// Handle preflight
-app.options('*', (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.status(200).end();
+  // Respond to preflight immediately
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  next();
 });
-// hello
-// check
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.get('/', (req, res) => {
-  res.json({
-    message: 'School Management API',
-    version: '1.0.0',
-    endpoints: {
-      auth: '/api/auth',
-      dashboard: '/api/dashboard',
-      schools: '/api/schools',
-      students: '/api/students',
-      categories: '/api/categories',
-      products: '/api/products',
-      suppliers: '/api/suppliers',
-      purchases: '/api/purchases',
-      invoices: '/api/invoices',
-      commissions: '/api/commissions',
-      reports: '/api/reports'
-    }
-  });
+  res.json({ message: 'School Management API', version: '1.0.0' });
 });
 
 app.use('/api/auth', authRoutes);
