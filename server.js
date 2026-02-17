@@ -23,22 +23,25 @@ const PORT = process.env.PORT || 3000;
 
 connectDB();
 
-// allow specific frontend origin (set CLIENT_URL in .env, e.g. http://localhost:3001)
-const allowedOrigins = [
-  'https://stationary-frontend-one.vercel.app',
-  'http://localhost:3000',
-  'http://localhost:3001',
-];
+// ✅ STEP 1: Handle preflight FIRST before anything else
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  next();
+});
+
+// ✅ STEP 2: Then cors middleware
 app.use(cors({
   origin: '*',
   credentials: false,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
-
-// ensure preflight requests are handled
-app.options('*', cors());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
