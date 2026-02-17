@@ -20,27 +20,45 @@ dotenv.config();
 
 const app = express();
 
+
 connectDB();
 
-// ✅ THIS MUST BE FIRST - before any other middleware
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.header('Access-Control-Allow-Credentials', 'true');
+// allow specific frontend origin (set CLIENT_URL in .env, e.g. http://localhost:3001)
+// allow specific frontend origin (set CLIENT_URL in .env, e.g. http://localhost:3001)
+const CLIENT_URL = 'https://stationary-frontend-one.vercel.app';
+// const allowedOrigins = [CLIENT_URL, 'https://stationary-frontend-one.vercel.app'];
 
-  // Respond to preflight immediately
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-  next();
-});
+app.use(cors({
+  origin: true, // Allow all origins (reflects request origin)
+  credentials: true, // set true if frontend uses credentials/cookies
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
+// ensure preflight requests are handled
+app.options('*', cors());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.get('/', (req, res) => {
-  res.json({ message: 'School Management API', version: '1.0.0' });
+  res.json({
+    message: 'School Management API',
+    version: '1.0.0',
+    endpoints: {
+      auth: '/api/auth',
+      dashboard: '/api/dashboard',
+      schools: '/api/schools',
+      students: '/api/students',
+      categories: '/api/categories',
+      products: '/api/products',
+      suppliers: '/api/suppliers',
+      purchases: '/api/purchases',
+      invoices: '/api/invoices',
+      commissions: '/api/commissions',
+      reports: '/api/reports'
+    }
+  });
 });
 
 app.use('/api/auth', authRoutes);
