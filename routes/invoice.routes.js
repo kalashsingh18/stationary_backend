@@ -1,0 +1,26 @@
+import express from 'express';
+import {
+  getAllInvoices,
+  getInvoiceById,
+  createInvoice,
+  generateInvoicePDF,
+  searchStudent
+} from '../controllers/invoice.controller.js';
+import { protect } from '../middleware/auth.js';
+
+const router = express.Router();
+
+router.use(protect);
+
+router.get('/search-student', searchStudent);
+
+router.route('/')
+  .get(getAllInvoices)
+  .post(createInvoice);
+
+router.get('/:id/pdf', generateInvoicePDF);
+
+router.route('/:id')
+  .get(getInvoiceById);
+
+export default router;
