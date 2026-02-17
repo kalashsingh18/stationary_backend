@@ -19,17 +19,19 @@ import errorHandler from './middleware/errorHandler.js';
 dotenv.config();
 
 const app = express();
-
+const PORT = process.env.PORT || 3000;
 
 connectDB();
 
 // allow specific frontend origin (set CLIENT_URL in .env, e.g. http://localhost:3001)
-// allow specific frontend origin (set CLIENT_URL in .env, e.g. http://localhost:3001)
-const CLIENT_URL = 'https://stationary-frontend-one.vercel.app';
-// const allowedOrigins = [CLIENT_URL, 'https://stationary-frontend-one.vercel.app'];
+const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3001';
+const allowedOrigins = [CLIENT_URL, 'http://localhost:3000'];
 
 app.use(cors({
-  origin: true, // Allow all origins (reflects request origin)
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true); // allow tools like curl/postman
+    return allowedOrigins.includes(origin) ? callback(null, true) : callback(new Error('Not allowed by CORS'));
+  },
   credentials: true, // set true if frontend uses credentials/cookies
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -75,5 +77,11 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/admins', adminRoutes);
 
 app.use(errorHandler);
+
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
+}
 
 export default app;
