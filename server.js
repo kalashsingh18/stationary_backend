@@ -29,14 +29,20 @@ const CLIENT_URL = 'https://stationary-frontend-one.vercel.app';
 // const allowedOrigins = [CLIENT_URL, 'https://stationary-frontend-one.vercel.app'];
 
 app.use(cors({
-  origin: true, // Allow all origins (reflects request origin)
-  credentials: true, // set true if frontend uses credentials/cookies
+  origin: (origin, callback) => callback(null, origin || '*'),
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// ensure preflight requests are handled
-app.options('*', cors());
+// Handle preflight
+app.options('*', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.status(200).end();
+});
 // hello
 // check
 app.use(express.json());
