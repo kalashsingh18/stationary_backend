@@ -24,15 +24,25 @@ const PORT = process.env.PORT || 3000;
 connectDB();
 
 // allow specific frontend origin (set CLIENT_URL in .env, e.g. http://localhost:3001)
-const CLIENT_URL = process.env.CLIENT_URL || 'https://stationary-frontend-one.vercel.app';
-const allowedOrigins = [CLIENT_URL, 'https://stationary-frontend-one.vercel.app/'];
+const allowedOrigins = [
+  'https://stationary-frontend-one.vercel.app',
+  'http://localhost:3000',
+  'http://localhost:3001',
+];
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin) return callback(null, true); // allow tools like curl/postman
-    return allowedOrigins.includes(origin) ? callback(null, true) : callback(new Error('Not allowed by CORS'));
+    // Allow cURL/Postman (no origin)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      console.log('Blocked by CORS:', origin); // 👈 this will show the exact origin
+      return callback(new Error('Not allowed by CORS'));
+    }
   },
-  credentials: true, // set true if frontend uses credentials/cookies
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
