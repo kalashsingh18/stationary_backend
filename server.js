@@ -24,8 +24,8 @@ const PORT = process.env.PORT || 3000;
 connectDB();
 
 // allow specific frontend origin (set CLIENT_URL in .env, e.g. http://localhost:3001)
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3001';
-const allowedOrigins = [CLIENT_URL, 'http://localhost:3000'];
+const CLIENT_URL = process.env.CLIENT_URL || 'https://stationary-frontend-one.vercel.app';
+const allowedOrigins = [CLIENT_URL, 'https://stationary-frontend-one.vercel.app/'];
 
 app.use(cors({
   origin: (origin, callback) => {
