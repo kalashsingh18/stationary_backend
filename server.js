@@ -38,6 +38,7 @@ app.use(cors({
 // ensure preflight requests are handled
 app.options('*', cors());
 // hello
+// check
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
