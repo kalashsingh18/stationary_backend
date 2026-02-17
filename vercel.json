@@ -12,7 +12,7 @@
             "headers": [
                 {
                     "key": "Access-Control-Allow-Origin",
-                    "value": "*"
+                    "value": "https://stationary-frontend-one.vercel.app"
                 },
                 {
                     "key": "Access-Control-Allow-Methods",
@@ -21,6 +21,10 @@
                 {
                     "key": "Access-Control-Allow-Headers",
                     "value": "Content-Type, Authorization"
+                },
+                {
+                    "key": "Access-Control-Allow-Credentials",
+                    "value": "true"
                 }
             ]
         }
