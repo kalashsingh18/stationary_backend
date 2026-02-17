@@ -21,7 +21,11 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-connectDB();
+
+app.use(async (req, res, next) => {
+  await connectDB();
+  next();
+});
 
 // allow specific frontend origin (set CLIENT_URL in .env, e.g. http://localhost:3001)
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3001';
