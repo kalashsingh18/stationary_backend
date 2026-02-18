@@ -3,6 +3,7 @@ import Student from '../models/Student.model.js';
 import Product from '../models/Product.model.js';
 import School from '../models/School.model.js';
 import Commission from '../models/Commission.model.js';
+import mongoose from 'mongoose';
 import PDFDocument from 'pdfkit';
 
 const generateInvoiceNumber = async () => {
@@ -119,7 +120,7 @@ export const getInvoiceById = async (req, res, next) => {
 
 export const createInvoice = async (req, res, next) => {
   try {
-    const { school, student, items, paymentMethod } = req.body;
+    const { school, student, items, discount, paymentStatus, paymentMethod } = req.body;
 
     const studentExists = await Student.findById(student).populate('school');
     if (!studentExists) {
@@ -129,18 +130,21 @@ export const createInvoice = async (req, res, next) => {
       });
     }
 
-    const schoolExists = await School.findById(school);
-    if (!schoolExists) {
-      return res.status(400).json({
-        success: false,
-        message: 'School not found'
-      });
-    }
+    let schoolExists = null;
+    if (school && mongoose.Types.ObjectId.isValid(school)) {
+      schoolExists = await School.findById(school);
+      if (!schoolExists) {
+        return res.status(400).json({
+          success: false,
+          message: 'School not found'
+        });
+      }
 
-    // ownership: ensure school belongs to admin
-    if (req.admin && req.admin.role !== 'superadmin') {
-      if (!schoolExists.createdBy || schoolExists.createdBy.toString() !== req.admin._id.toString()) {
-        return res.status(403).json({ success: false, message: 'Forbidden: cannot create invoice for this school' });
+      // ownership: ensure school belongs to admin
+      if (req.admin && req.admin.role !== 'superadmin') {
+        if (!schoolExists.createdBy || schoolExists.createdBy.toString() !== req.admin._id.toString()) {
+          return res.status(403).json({ success: false, message: 'Forbidden: cannot create invoice for this school' });
+        }
       }
     }
 
@@ -187,9 +191,15 @@ export const createInvoice = async (req, res, next) => {
       await product.save();
     }
 
-    const totalAmount = subtotal + gstAmount;
+    const totalAmount = subtotal + gstAmount - (discount || 0);
 
-    const commissionAmount = (subtotal * schoolExists.commissionRate) / 100;
+    let commissionAmount = 0;
+    let commissionRate = 0;
+
+    if (schoolExists) {
+      commissionRate = schoolExists.commissionRate;
+      commissionAmount = (subtotal * commissionRate) / 100;
+    }
 
     const invoiceNumber = await generateInvoiceNumber();
 
@@ -200,26 +210,29 @@ export const createInvoice = async (req, res, next) => {
       items: processedItems,
       subtotal,
       gstAmount,
+      discount: discount || 0,
       totalAmount,
-      commissionRate: schoolExists.commissionRate,
+      commissionRate,
       commissionAmount,
-      paymentStatus: 'paid',
+      paymentStatus: paymentStatus || 'paid',
       paymentMethod: paymentMethod || 'cash',
       invoiceDate: req.body.invoiceDate || new Date(),
       notes: req.body.notes
     });
 
-    const invoiceDate = new Date(invoice.invoiceDate);
-    await Commission.create({
-      school,
-      invoice: invoice._id,
-      month: invoiceDate.getMonth() + 1,
-      year: invoiceDate.getFullYear(),
-      commissionRate: schoolExists.commissionRate,
-      baseAmount: subtotal,
-      commissionAmount,
-      status: 'pending'
-    });
+    if (schoolExists) {
+      const invoiceDate = new Date(invoice.invoiceDate);
+      await Commission.create({
+        school,
+        invoice: invoice._id,
+        month: invoiceDate.getMonth() + 1,
+        year: invoiceDate.getFullYear(),
+        commissionRate: commissionRate,
+        baseAmount: subtotal,
+        commissionAmount,
+        status: 'pending'
+      });
+    }
 
     const populatedInvoice = await Invoice.findById(invoice._id)
       .populate('school', 'name code')
@@ -230,6 +243,100 @@ export const createInvoice = async (req, res, next) => {
       success: true,
       data: populatedInvoice
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateInvoice = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { items, discount, paymentStatus, paymentMethod, notes } = req.body;
+
+    const invoice = await Invoice.findById(id);
+    if (!invoice) {
+      return res.status(404).json({ success: false, message: 'Invoice not found' });
+    }
+
+    if (invoice.paymentStatus === 'paid') {
+      return res.status(400).json({ success: false, message: 'Paid invoices cannot be edited' });
+    }
+
+    // Update items if provided
+    if (items && items.length > 0) {
+      // First restore stock for old items
+      for (const oldItem of invoice.items) {
+        await Product.findByIdAndUpdate(oldItem.product, { $inc: { stock: oldItem.quantity } });
+      }
+
+      let subtotal = 0;
+      let gstAmount = 0;
+      const processedItems = [];
+
+      for (const item of items) {
+        const product = await Product.findById(item.product);
+        if (!product) {
+          return res.status(400).json({ success: false, message: `Product ${item.product} not found` });
+        }
+        if (product.stock < item.quantity) {
+          return res.status(400).json({ success: false, message: `Insufficient stock for ${product.name}` });
+        }
+
+        const itemSubtotal = item.quantity * product.basePrice;
+        const itemGst = (itemSubtotal * product.gstRate) / 100;
+        const itemTotal = itemSubtotal + itemGst;
+
+        processedItems.push({
+          product: item.product,
+          productName: product.name,
+          quantity: item.quantity,
+          unitPrice: product.basePrice,
+          gstRate: product.gstRate,
+          gstAmount: itemGst,
+          totalPrice: itemTotal
+        });
+
+        subtotal += itemSubtotal;
+        gstAmount += itemGst;
+        product.stock -= item.quantity;
+        await product.save();
+      }
+
+      invoice.items = processedItems;
+      invoice.subtotal = subtotal;
+      invoice.gstAmount = gstAmount;
+      invoice.discount = discount !== undefined ? discount : invoice.discount;
+      invoice.totalAmount = subtotal + gstAmount - invoice.discount;
+
+      // Recalculate commission if school exists
+      if (invoice.school) {
+        invoice.commissionAmount = (subtotal * invoice.commissionRate) / 100;
+        // Also update Commission record if it exists
+        await Commission.findOneAndUpdate(
+          { invoice: invoice._id },
+          {
+            baseAmount: subtotal,
+            commissionAmount: invoice.commissionAmount
+          }
+        );
+      }
+    } else if (discount !== undefined) {
+      invoice.discount = discount;
+      invoice.totalAmount = (invoice.subtotal + invoice.gstAmount) - discount;
+    }
+
+    if (paymentStatus) invoice.paymentStatus = paymentStatus;
+    if (paymentMethod) invoice.paymentMethod = paymentMethod;
+    if (notes) invoice.notes = notes;
+
+    await invoice.save();
+
+    const populatedInvoice = await Invoice.findById(invoice._id)
+      .populate('school', 'name code')
+      .populate('student', 'name rollNumber class')
+      .populate('items.product', 'name sku');
+
+    res.status(200).json({ success: true, data: populatedInvoice });
   } catch (error) {
     next(error);
   }

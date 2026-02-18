@@ -1,5 +1,6 @@
 import Student from '../models/Student.model.js';
 import School from '../models/School.model.js';
+import mongoose from 'mongoose';
 import * as xlsx from 'xlsx';
 
 export const getAllStudents = async (req, res, next) => {
@@ -86,19 +87,20 @@ export const getStudentById = async (req, res, next) => {
 
 export const createStudent = async (req, res, next) => {
   try {
-    const schoolExists = await School.findById(req.body.school);
+    if (req.body.school && mongoose.Types.ObjectId.isValid(req.body.school)) {
+      const schoolExists = await School.findById(req.body.school);
+      if (!schoolExists) {
+        return res.status(400).json({
+          success: false,
+          message: 'School not found'
+        });
+      }
 
-    if (!schoolExists) {
-      return res.status(400).json({
-        success: false,
-        message: 'School not found'
-      });
-    }
-
-    // ownership check
-    if (req.admin && req.admin.role !== 'superadmin') {
-      if (!schoolExists.createdBy || schoolExists.createdBy.toString() !== req.admin._id.toString()) {
-        return res.status(403).json({ success: false, message: 'Forbidden: cannot add students to this school' });
+      // ownership check
+      if (req.admin && req.admin.role !== 'superadmin') {
+        if (!schoolExists.createdBy || schoolExists.createdBy.toString() !== req.admin._id.toString()) {
+          return res.status(403).json({ success: false, message: 'Forbidden: cannot add students to this school' });
+        }
       }
     }
 
@@ -124,7 +126,7 @@ export const createStudent = async (req, res, next) => {
 
 export const updateStudent = async (req, res, next) => {
   try {
-    if (req.body.school) {
+    if (req.body.school && mongoose.Types.ObjectId.isValid(req.body.school)) {
       const schoolExists = await School.findById(req.body.school);
       if (!schoolExists) {
         return res.status(400).json({

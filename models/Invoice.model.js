@@ -39,8 +39,7 @@ const invoiceSchema = new mongoose.Schema({
   },
   school: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'School',
-    required: [true, 'School is required']
+    ref: 'School'
   },
   student: {
     type: mongoose.Schema.Types.ObjectId,
@@ -54,6 +53,10 @@ const invoiceSchema = new mongoose.Schema({
     default: 0
   },
   gstAmount: {
+    type: Number,
+    default: 0
+  },
+  discount: {
     type: Number,
     default: 0
   },

@@ -14,12 +14,10 @@ const studentSchema = new mongoose.Schema({
   },
   school: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'School',
-    required: [true, 'School is required']
+    ref: 'School'
   },
   class: {
     type: String,
-    required: [true, 'Class is required'],
     trim: true
   },
   section: {

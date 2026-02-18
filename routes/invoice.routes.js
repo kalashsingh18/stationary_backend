@@ -3,6 +3,7 @@ import {
   getAllInvoices,
   getInvoiceById,
   createInvoice,
+  updateInvoice,
   generateInvoicePDF,
   searchStudent
 } from '../controllers/invoice.controller.js';
@@ -21,6 +22,7 @@ router.route('/')
 router.get('/:id/pdf', generateInvoicePDF);
 
 router.route('/:id')
-  .get(getInvoiceById);
+  .get(getInvoiceById)
+  .put(updateInvoice);
 
 export default router;
