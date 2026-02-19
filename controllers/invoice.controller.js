@@ -5,6 +5,7 @@ import School from '../models/School.model.js';
 import Commission from '../models/Commission.model.js';
 import mongoose from 'mongoose';
 import PDFDocument from 'pdfkit';
+import { lookupGstin } from '../utils/gstService.js';
 
 const generateInvoiceNumber = async () => {
   const date = new Date();
@@ -217,7 +218,10 @@ export const createInvoice = async (req, res, next) => {
       paymentStatus: paymentStatus || 'paid',
       paymentMethod: paymentMethod || 'cash',
       invoiceDate: req.body.invoiceDate || new Date(),
-      notes: req.body.notes
+      notes: req.body.notes,
+      isGstInvoice: req.body.isGstInvoice || false,
+      gstNumber: req.body.gstNumber,
+      businessInfo: req.body.businessInfo
     });
 
     if (schoolExists) {
@@ -365,6 +369,13 @@ export const generateInvoicePDF = async (req, res, next) => {
     doc.fontSize(20).text('INVOICE', { align: 'center' });
     doc.moveDown();
 
+    if (invoice.isGstInvoice && invoice.businessInfo) {
+      doc.fontSize(10).text(invoice.businessInfo.trade_name || invoice.businessInfo.legal_name, { align: 'left' });
+      doc.text(invoice.businessInfo.address, { align: 'left' });
+      doc.text(`GSTIN: ${invoice.businessInfo.gstin}`, { align: 'left' });
+      doc.moveDown();
+    }
+
     doc.fontSize(12).text(`Invoice Number: ${invoice.invoiceNumber}`);
     doc.text(`Date: ${new Date(invoice.invoiceDate).toLocaleDateString()}`);
     doc.moveDown();
@@ -453,6 +464,24 @@ export const searchStudent = async (req, res, next) => {
       success: true,
       data: students
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const lookupGst = async (req, res, next) => {
+  try {
+    const { gstin } = req.params;
+    if (!gstin) {
+      return res.status(400).json({ success: false, message: 'GSTIN is required' });
+    }
+
+    const result = await lookupGstin(gstin);
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.status(200).json(result);
   } catch (error) {
     next(error);
   }

@@ -89,6 +89,17 @@ const invoiceSchema = new mongoose.Schema({
   },
   notes: {
     type: String
+  },
+  isGstInvoice: {
+    type: Boolean,
+    default: false
+  },
+  gstNumber: {
+    type: String,
+    trim: true
+  },
+  businessInfo: {
+    type: mongoose.Schema.Types.Mixed
   }
 }, {
   timestamps: true

@@ -5,7 +5,8 @@ import {
   createInvoice,
   updateInvoice,
   generateInvoicePDF,
-  searchStudent
+  searchStudent,
+  lookupGst
 } from '../controllers/invoice.controller.js';
 import { protect } from '../middleware/auth.js';
 
@@ -14,6 +15,7 @@ const router = express.Router();
 router.use(protect);
 
 router.get('/search-student', searchStudent);
+router.get('/lookup-gst/:gstin', lookupGst);
 
 router.route('/')
   .get(getAllInvoices)
